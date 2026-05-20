@@ -1,76 +1,71 @@
-# Домашнее задание «Кластеризация и балансировка нагрузки»
+# Домашнее задание «Резервное копирование»
 
-Выполнил: Александр Масайлов
+Александр Масайлов
+
+---
 
 ## Задание 1
 
-Запустил 2 Python-сервера на портах 8001 и 8002.
+Сделал резервное копирование домашней директории с помощью rsync.
 
-Настроил HAProxy с балансировкой Round Robin.
+Команда:
 
-Конфигурация:
+```bash
+rsync -avc --delete --exclude='.*' ~/ /tmp/backup/
+```
 
-```cfg
-frontend task1_front
-    bind *:8080
-    mode tcp
-    default_backend task1_back
+Проверка:
 
-backend task1_back
-    mode tcp
-    balance roundrobin
-    server server1 127.0.0.1:8001 check
-    server server2 127.0.0.1:8002 check
+```bash
+ls /tmp/backup
+ls -a /tmp/backup
 ```
 
 Скриншоты:
 
-![img](скрин1.png)
+![img](img/img1.png)
 
-![img](скрин2.png)
-
-![img](скрин3.png)
-
-![img](скрин4.png)
+![img](img/img2.png)
 
 ---
 
 ## Задание 2
 
-Запустил 3 Python-сервера на портах 8011, 8012 и 8013.
+Создал скрипт backup.sh:
 
-Настроил Weighted Round Robin.
+```bash
+#!/bin/bash
 
-Конфигурация:
+rsync -avc --delete --exclude='.*' /home/user/ /tmp/backup/
 
-```cfg
-frontend task2_front
-    bind *:8081
-    mode http
+if [ $? -eq 0 ]; then
+    logger "Backup completed successfully"
+else
+    logger "Backup failed"
+fi
+```
 
-    acl is_example hdr_beg(host) -i example.local
-    use_backend task2_back if is_example
-    default_backend deny_backend
+Сделал файл исполняемым:
 
-backend task2_back
-    mode http
-    balance roundrobin
-    server web1 127.0.0.1:8011 check weight 2
-    server web2 127.0.0.1:8012 check weight 3
-    server web3 127.0.0.1:8013 check weight 4
+```bash
+chmod +x ~/backup.sh
+```
 
-backend deny_backend
-    mode http
-    http-request deny deny_status 403
+Настроил cron:
+
+```cron
+0 2 * * * /home/user/backup.sh
+```
+
+Проверка:
+
+```bash
+crontab -l
 ```
 
 Скриншоты:
 
-![img](скрин5.png)
+![img](img/img3.png)
 
-![img](скрин6.png)
-
-![img](скрин7.png)
-
-![img](скрин8.png)
+![img](img/img4.png)
 
