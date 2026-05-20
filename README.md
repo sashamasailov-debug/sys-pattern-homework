@@ -23,9 +23,9 @@ ls -a /tmp/backup
 
 Скриншоты:
 
-![img](img/img1.png)
+![img](скрин1.png)
 
-![img](img/img2.png)
+![img](скрин2.png)
 
 ---
 
@@ -65,7 +65,7 @@ crontab -l
 
 Скриншоты:
 
-![img](img/img3.png)
+![img](скрин3.png)
 
-![img](img/img4.png)
+![img](скрин4.png)
 
