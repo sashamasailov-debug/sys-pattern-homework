@@ -1,4 +1,4 @@
-# Домашнее задание «Работа с данными (DDL/DML)»
+# Домашнее задание «Репликация и масштабирование. Часть 1»
 
 Александр Масайлов
 
@@ -6,143 +6,89 @@
 
 ## Задание 1
 
-### 1.1
+### Master-Slave
 
-Установил MySQL 8.
+В этой схеме есть главный сервер (Master), на который записываются все данные. Второй сервер (Slave) автоматически получает изменения с Master. Обычно запись идёт на Master, а чтение можно делать со Slave.
 
-Проверил версию:
+### Master-Master
 
-```bash
-mysql --version
-```
+В этой схеме оба сервера являются главными и могут принимать запись. Данные синхронизируются между ними. Такая схема сложнее, но если один сервер перестанет работать, можно продолжить работать со вторым.
 
-### 1.2
+---
 
-Зашёл в MySQL:
+## Задание 2
 
-```bash
-sudo mysql
-```
+Настроил репликацию Master-Slave между двумя виртуальными машинами.
 
-Создал пользователя:
+### Настройка Master
 
-```sql
-CREATE USER 'sys_temp'@'localhost' IDENTIFIED BY 'password';
-```
+Изменил файл `mysqld.cnf`:
 
-### 1.3
-
-Посмотрел список пользователей:
-
-```sql
-SELECT user, host FROM mysql.user;
-```
+- `bind-address = 0.0.0.0`
+- `server-id = 1`
+- `log_bin = /var/log/mysql/mysql-bin.log`
 
 Скриншот:
 
 ![img](скрин1.png)
 
-### 1.4
-
-Выдал пользователю все права:
+Создал пользователя для репликации:
 
 ```sql
-GRANT ALL PRIVILEGES ON *.* TO 'sys_temp'@'localhost' WITH GRANT OPTION;
+CREATE USER 'repl'@'10.129.0.11' IDENTIFIED BY 'password';
+
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'10.129.0.11';
+
 FLUSH PRIVILEGES;
 ```
 
-### 1.5
-
-Проверил права пользователя:
+Получил параметры Master:
 
 ```sql
-SHOW GRANTS FOR 'sys_temp'@'localhost';
+SHOW MASTER STATUS;
 ```
 
 Скриншот:
 
 ![img](скрин2.png)
 
-### 1.6
+---
 
-Подключился под пользователем `sys_temp`:
+### Настройка Slave
 
-```bash
-mysql -u sys_temp -ppassword
-```
+Изменил файл `mysqld.cnf`:
 
-### 1.7
-
-Скачал и распаковал базу Sakila:
-
-```bash
-wget https://downloads.mysql.com/docs/sakila-db.zip
-
-unzip sakila-db.zip
-```
-
-Создал базу:
-
-```sql
-CREATE DATABASE sakila;
-```
-
-Загрузил структуру и данные:
-
-```bash
-mysql -u sys_temp -ppassword sakila < sakila-db/sakila-schema.sql
-
-mysql -u sys_temp -ppassword sakila < sakila-db/sakila-data.sql
-```
-
-### 1.8
-
-Подключился к базе:
-
-```sql
-USE sakila;
-```
-
-Посмотрел список таблиц:
-
-```sql
-SHOW TABLES;
-```
+- `bind-address = 0.0.0.0`
+- `server-id = 2`
 
 Скриншот:
 
 ![img](скрин3.png)
 
----
-
-## Задание 2
-
-Получил список таблиц и их первичных ключей:
+Настроил подключение к Master:
 
 ```sql
-SELECT
-TABLE_NAME,
-COLUMN_NAME
-FROM information_schema.KEY_COLUMN_USAGE
-WHERE TABLE_SCHEMA='sakila'
-AND CONSTRAINT_NAME='PRIMARY';
+CHANGE REPLICATION SOURCE TO
+SOURCE_HOST='10.129.0.16',
+SOURCE_USER='repl',
+SOURCE_PASSWORD='password',
+SOURCE_LOG_FILE='mysql-bin.000001',
+SOURCE_LOG_POS=876;
+
+START REPLICA;
 ```
 
-| Таблица | Первичный ключ |
-|----------|----------------|
-| actor | actor_id |
-| address | address_id |
-| category | category_id |
-| city | city_id |
-| country | country_id |
-| customer | customer_id |
-| film | film_id |
-| film_actor | actor_id, film_id |
-| film_category | film_id, category_id |
-| film_text | film_id |
-| inventory | inventory_id |
-| language | language_id |
-| payment | payment_id |
-| rental | rental_id |
-| staff | staff_id |
-| store | store_id |
+Проверил состояние репликации:
+
+```sql
+SHOW REPLICA STATUS\G
+```
+
+Репликация работает:
+
+- Replica_IO_Running: Yes
+- Replica_SQL_Running: Yes
+
+Скриншот:
+
+![img](скрин4.png)
